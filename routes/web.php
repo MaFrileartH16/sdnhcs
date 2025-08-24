@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminApplicantController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminTestController;
 use App\Http\Controllers\AdmissionController;
 use App\Http\Controllers\Guardian\GuardianApplicantController;
+use App\Http\Controllers\Guardian\GuardianDashboardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -22,7 +24,8 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'verified'])
     ->prefix('admin')->name('admin.')
     ->group(function () {
-        Route::get('/dashboard', fn() => Inertia::render('admin/Dashboard'))->name('dashboard');
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])
+            ->name('dashboard');
 
         Route::get('/applicants', [AdminApplicantController::class, 'index'])
             ->name('applicants.index');
@@ -46,7 +49,8 @@ Route::middleware(['auth', 'verified'])
 Route::middleware(['auth', 'verified'])
     ->prefix('guardian')->name('guardian.')
     ->group(function () {
-        Route::get('/dashboard', fn() => Inertia::render('guardian/Dashboard'))->name('dashboard');
+        Route::get('/dashboard', [GuardianDashboardController::class, 'index'])
+            ->name('dashboard');
 
         Route::get('/applicants', [GuardianApplicantController::class, 'index'])
             ->name('applicants.index');
