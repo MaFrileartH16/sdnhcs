@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Head } from '@inertiajs/vue3';
-import { BookOpen, CheckCircle2, ClipboardList, FileCheck2, School } from 'lucide-vue-next';
+import { Head, Link } from '@inertiajs/vue3';
+import { BookOpen, CheckCircle2, ClipboardList, FileCheck2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 const nav = ref([
@@ -41,11 +41,10 @@ const requirements = ref(['Formulir Pendaftaran', 'Kartu Keluarga', 'Akta Lahir'
     >
         <header class="sticky top-0 z-40 border-b border-black/5 bg-white/70 backdrop-blur-md dark:border-white/10 dark:bg-[#0a0a0a]/70">
             <div class="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3">
-                <a aria-label="Beranda" class="flex items-center" href="#hero">
-                    <div class="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-100 ring-1 ring-emerald-400/60 dark:bg-emerald-900/40">
-                        <School class="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
-                    </div>
-                </a>
+                <Link :href="route('home') + '#hero'" aria-label="Beranda" class="flex items-center">
+                    <img alt="Logo Sekolah" class="h-10 w-10 object-contain" src="/logo.png" />
+                </Link>
+
                 <nav class="hidden items-center gap-1 text-sm md:flex">
                     <Button v-for="n in nav" :key="n.href" asChild class="px-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/30" variant="ghost">
                         <a :href="n.href">{{ n.label }}</a>

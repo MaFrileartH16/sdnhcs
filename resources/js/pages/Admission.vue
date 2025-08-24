@@ -8,7 +8,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { School } from 'lucide-vue-next';
 import { onMounted, ref, watch } from 'vue';
 
 const nav = ref([
@@ -82,12 +81,9 @@ onMounted(() => {
         <header class="sticky top-0 z-40 border-b border-black/5 bg-white/70 backdrop-blur-md dark:border-white/10 dark:bg-[#0a0a0a]/70">
             <div class="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3">
                 <Link :href="route('home') + '#hero'" aria-label="Beranda" class="flex items-center">
-                    <div
-                        class="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-100 ring-1 ring-emerald-400/60 transition hover:scale-105 dark:bg-emerald-900/40"
-                    >
-                        <School class="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
-                    </div>
+                    <img alt="Logo Sekolah" class="h-10 w-10 object-contain" src="/logo.png" />
                 </Link>
+
                 <nav class="hidden items-center gap-1 text-sm md:flex">
                     <Button v-for="n in nav" :key="n.hash" asChild class="px-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/30" variant="ghost">
                         <Link :href="route('home') + n.hash">{{ n.label }}</Link>

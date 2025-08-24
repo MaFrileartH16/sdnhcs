@@ -1,35 +1,62 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminApplicantController;
+use App\Http\Controllers\Admin\AdminTestController;
 use App\Http\Controllers\AdmissionController;
+use App\Http\Controllers\Guardian\GuardianApplicantController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Home');
-})->name('home');
-
-
+/* ========= PUBLIC ========= */
 Route::get('/', fn() => Inertia::render('Home'))->name('home');
 
-//Route::get('/dashboard', function () {
-//    $user = auth()->user();
-//
-//    if (! $user) {
-//        return redirect()->route('login');
-//    }
-//
-//    if ($user->role === 'admin') {
-//        return Inertia::render('admin/Dashboard', ['user' => $user]);
-//    }
-//
-//    if ($user->role === 'guardian') {
-//        return Inertia::render('guardian/Dashboardr', ['user' => $user]);
-//    }
-//
-//    return Inertia::render('Dashboard/Unknown', ['user' => $user]);
-//})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', function () {
+    $u = auth()->user();
+    abort_unless($u, 403);
+    return $u->role === 'admin'
+        ? redirect()->route('admin.dashboard')
+        : redirect()->route('guardian.dashboard');
+})->middleware('auth')->name('dashboard');
 
+/* ========= ADMIN ========= */
+Route::middleware(['auth', 'verified'])
+    ->prefix('admin')->name('admin.')
+    ->group(function () {
+        Route::get('/dashboard', fn() => Inertia::render('admin/Dashboard'))->name('dashboard');
 
+        Route::get('/applicants', [AdminApplicantController::class, 'index'])
+            ->name('applicants.index');
+
+        Route::get('/tests', [AdminTestController::class, 'index'])->name('tests.index');
+
+        // settings KKM
+        Route::post('/tests/settings', [AdminTestController::class, 'updateSettings'])
+            ->name('tests.settings.update');
+
+        // subjects
+        Route::post('/tests/subjects', [AdminTestController::class, 'storeSubject'])
+            ->name('tests.subjects.store');
+        Route::put('/tests/subjects/{id}', [AdminTestController::class, 'updateSubject'])
+            ->name('tests.subjects.update');
+        Route::delete('/tests/subjects/{id}', [AdminTestController::class, 'destroySubject'])
+            ->name('tests.subjects.destroy');
+    });
+
+/* ========= GUARDIAN ========= */
+Route::middleware(['auth', 'verified'])
+    ->prefix('guardian')->name('guardian.')
+    ->group(function () {
+        Route::get('/dashboard', fn() => Inertia::render('guardian/Dashboard'))->name('dashboard');
+
+        Route::get('/applicants', [GuardianApplicantController::class, 'index'])
+            ->name('applicants.index');
+
+        // ✅ simpan/ubah nilai tes untuk seorang siswa (guardian)
+        Route::post('/applicants/{student}/scores', [GuardianApplicantController::class, 'upsertScores'])
+            ->name('applicants.scores.store');
+    });
+
+/* ========= ADMISSIONS (umum/guardian) ========= */
 Route::prefix('admissions')->name('admissions.')->group(function () {
     Route::get('/', fn() => Inertia::render('Admission'))->name('index');
     Route::post('/', [AdmissionController::class, 'store'])->name('store');
