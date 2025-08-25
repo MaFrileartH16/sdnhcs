@@ -29,6 +29,8 @@ Route::middleware(['auth', 'verified'])
 
         Route::get('/applicants', [AdminApplicantController::class, 'index'])
             ->name('applicants.index');
+        Route::delete('/applicants/{id}', [AdminApplicantController::class, 'destroy'])
+            ->name('applicants.destroy');
 
         Route::get('/tests', [AdminTestController::class, 'index'])->name('tests.index');
 

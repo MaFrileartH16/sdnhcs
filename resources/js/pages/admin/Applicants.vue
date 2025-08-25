@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Pagination, PaginationContent, PaginationItem } from '@/components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ClipboardList, ExternalLink, FileText, Search } from 'lucide-vue-next';
+import { ClipboardList, ExternalLink, FileText, Search, Trash2 } from 'lucide-vue-next';
 
 type Row = {
     id: number;
@@ -30,7 +30,6 @@ type Row = {
     created_at: string | null;
     files: Array<{ label: string; path: string | null }>;
 };
-
 type Subject = { id: number; name: string; link_url: string };
 
 const props = defineProps<{
@@ -40,8 +39,6 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs = [{ title: 'Pendaftar', href: route('admin.applicants.index') }];
-
-// === FIX: jadikan Row[] murni supaya TS tidak komplain "possibly null"
 const rows = computed<Row[]>(() => (props.items.data || []).filter((r): r is Row => !!r));
 
 const q = ref(props.filters.q ?? '');
@@ -54,20 +51,19 @@ watch([q, perPage], () => {
         router.get(
             route('admin.applicants.index'),
             { q: q.value, perPage: perPage.value },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                replace: true,
-                only: ['items', 'filters', 'meta'], // keep meta to avoid flicker
-            },
+            { preserveScroll: true, preserveState: true, replace: true, only: ['items', 'filters', 'meta'] },
         );
     }, 300);
 });
 
-// dialog state
+// dialog
 const showFiles = ref(false);
 const showSubjects = ref(false);
 const activeRow = ref<Row | null>(null);
+
+// hapus
+const showDelete = ref(false);
+const deleteId = ref<number | null>(null);
 
 function openFiles(row: Row) {
     activeRow.value = row;
@@ -78,9 +74,24 @@ function openSubjects(row: Row) {
     showSubjects.value = true;
 }
 
-function statusVariant(status: string) {
-    if (status === 'Lulus Tes') return 'default';
-    if (status === 'Tidak Lulus Tes') return 'destructive';
+function askDelete(id: number) {
+    deleteId.value = id;
+    showDelete.value = true;
+}
+function confirmDelete() {
+    if (!deleteId.value) return;
+    router.delete(route('admin.applicants.destroy', deleteId.value), {
+        preserveScroll: true,
+        onFinish: () => {
+            showDelete.value = false;
+            deleteId.value = null;
+        },
+    });
+}
+
+function statusVariant(s: string) {
+    if (s === 'Lulus Tes') return 'default';
+    if (s === 'Tidak Lulus Tes') return 'destructive';
     return 'secondary';
 }
 </script>
@@ -96,7 +107,6 @@ function statusVariant(status: string) {
                     <Search class="absolute top-1/2 left-2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input v-model="q" class="pl-8" placeholder="Cari siswa/wali/telepon…" />
                 </div>
-
                 <div class="grid gap-1">
                     <Label class="text-xs">Baris</Label>
                     <Select v-model="perPage">
@@ -104,16 +114,14 @@ function statusVariant(status: string) {
                             <SelectValue :placeholder="String(props.filters.perPage ?? 10)" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem v-for="n in props.meta.perPages" :key="n" :value="String(n)">
-                                {{ n }}
-                            </SelectItem>
+                            <SelectItem v-for="n in props.meta.perPages" :key="n" :value="String(n)">{{ n }}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
             </div>
 
             <!-- Table -->
-            <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+            <div class="rounded-xl border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -124,10 +132,9 @@ function statusVariant(status: string) {
                             <TableHead>Rata-rata</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Daftar</TableHead>
-                            <TableHead class="w-[220px] text-right">Aksi</TableHead>
+                            <TableHead class="w-[260px] text-right">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
-
                     <TableBody>
                         <TableRow v-for="(row, i) in rows" :key="row.id">
                             <TableCell class="text-center">{{ i + 1 }}</TableCell>
@@ -135,9 +142,9 @@ function statusVariant(status: string) {
                             <TableCell>{{ row.guardian_name }}</TableCell>
                             <TableCell>{{ row.guardian_phone }}</TableCell>
                             <TableCell>{{ row.average_score ?? '-' }}</TableCell>
-                            <TableCell>
-                                <Badge :variant="statusVariant(row.status)">{{ row.status }}</Badge>
-                            </TableCell>
+                            <TableCell
+                                ><Badge :variant="statusVariant(row.status)">{{ row.status }}</Badge></TableCell
+                            >
                             <TableCell>{{ row.created_at ?? '-' }}</TableCell>
                             <TableCell class="text-right">
                                 <div class="flex justify-end gap-2">
@@ -147,12 +154,14 @@ function statusVariant(status: string) {
                                     <Button class="bg-emerald-600 text-white hover:bg-emerald-700" size="sm" @click="openSubjects(row)">
                                         <ClipboardList class="mr-2 h-4 w-4" /> Kerjakan Tes
                                     </Button>
+                                    <Button size="sm" variant="destructive" @click="askDelete(row.id)">
+                                        <Trash2 class="mr-2 h-4 w-4" /> Hapus
+                                    </Button>
                                 </div>
                             </TableCell>
                         </TableRow>
-
                         <TableRow v-if="rows.length === 0">
-                            <TableCell class="text-center text-muted-foreground" colspan="8"> Belum ada data siswa </TableCell>
+                            <TableCell class="text-center text-muted-foreground" colspan="8">Belum ada data siswa</TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
@@ -162,7 +171,7 @@ function statusVariant(status: string) {
             <div v-if="props.items.links.length" class="flex items-center justify-center py-2">
                 <Pagination>
                     <PaginationContent>
-                        <PaginationItem v-for="(l, i) in props.items.links" :key="i" class="select-none">
+                        <PaginationItem v-for="(l, i) in props.items.links" :key="i">
                             <Link
                                 v-if="l?.url"
                                 :class="[l.active ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'hover:bg-muted']"
@@ -186,7 +195,6 @@ function statusVariant(status: string) {
                     <DialogTitle>Berkas Pendaftar</DialogTitle>
                     <DialogDescription>{{ activeRow?.student_name || '-' }}</DialogDescription>
                 </DialogHeader>
-
                 <div class="space-y-2">
                     <div v-if="(activeRow?.files?.length || 0) === 0" class="text-sm text-muted-foreground">Belum ada berkas.</div>
                     <ul v-else class="space-y-2">
@@ -205,10 +213,7 @@ function statusVariant(status: string) {
                         </li>
                     </ul>
                 </div>
-
-                <DialogFooter>
-                    <Button variant="secondary" @click="showFiles = false">Tutup</Button>
-                </DialogFooter>
+                <DialogFooter><Button variant="secondary" @click="showFiles = false">Tutup</Button></DialogFooter>
             </DialogContent>
         </Dialog>
 
@@ -217,9 +222,8 @@ function statusVariant(status: string) {
             <DialogContent class="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Daftar Tes</DialogTitle>
-                    <DialogDescription> {{ activeRow?.student_name || '-' }} — KKM: {{ props.meta.passMark }} </DialogDescription>
+                    <DialogDescription>{{ activeRow?.student_name || '-' }} — KKM: {{ props.meta.passMark }}</DialogDescription>
                 </DialogHeader>
-
                 <div class="space-y-2">
                     <ul class="space-y-2">
                         <li v-for="s in props.meta.subjects" :key="s.id" class="flex items-center justify-between rounded-md border p-2">
@@ -230,9 +234,20 @@ function statusVariant(status: string) {
                         </li>
                     </ul>
                 </div>
+                <DialogFooter><Button variant="secondary" @click="showSubjects = false">Tutup</Button></DialogFooter>
+            </DialogContent>
+        </Dialog>
 
+        <!-- Modal: Konfirmasi Hapus -->
+        <Dialog v-model:open="showDelete">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Hapus Pendaftar</DialogTitle>
+                    <DialogDescription>Apakah Anda yakin ingin menghapus pendaftar ini? Tindakan tidak dapat dibatalkan.</DialogDescription>
+                </DialogHeader>
                 <DialogFooter>
-                    <Button variant="secondary" @click="showSubjects = false">Tutup</Button>
+                    <Button variant="secondary" @click="showDelete = false">Batal</Button>
+                    <Button variant="destructive" @click="confirmDelete">Hapus</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

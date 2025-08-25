@@ -17,18 +17,14 @@ class AdminApplicantController extends Controller
         $q = trim((string)$request->query('q', ''));
         $perPage = max(1, (int)$request->query('perPage', 10));
 
-        // KKM (default 70)
         $passMark = (int)(DB::table('exam_settings')->value('pass_mark') ?? 70);
-
-        // Total mata pelajaran → untuk mengecek kelengkapan skor
         $subjectsCount = (int)DB::table('exam_subjects')->count();
 
-        // Agg nilai per admission: avg & count skor
         $scoreAgg = DB::table('exam_scores')
             ->select('admission_id', DB::raw('ROUND(AVG(score)) as avg_score'), DB::raw('COUNT(*) as cnt'))
             ->groupBy('admission_id')
             ->get()
-            ->keyBy('admission_id'); // ->get('admission_id') => { avg_score, cnt }
+            ->keyBy('admission_id');
 
         $pager = Student::query()
             ->with([
@@ -37,9 +33,9 @@ class AdminApplicantController extends Controller
             ])
             ->when($q !== '', function ($qr) use ($q) {
                 $qr->where('full_name', 'like', "%{$q}%")
-                    ->orWhereHas('guardian', fn($w) => $w->where('name', 'like', "%{$q}%")
-                        ->orWhere('phone', 'like', "%{$q}%")
-                    );
+                    ->orWhereHas('guardian', fn($w) => $w
+                        ->where('name', 'like', "%{$q}%")
+                        ->orWhere('phone', 'like', "%{$q}%"));
             })
             ->latest()
             ->paginate($perPage)
@@ -49,37 +45,25 @@ class AdminApplicantController extends Controller
             ->map(function ($s) use ($passMark, $subjectsCount, $scoreAgg) {
                 if (!$s) return null;
 
-                // Ambil agregat skor dari exam_scores (jika sudah ada)
                 $admissionId = optional($s->admission)->id;
                 $agg = $admissionId ? ($scoreAgg[$admissionId] ?? null) : null;
-
-                // avg untuk ditampilkan (jika ada skor sama sekali)
                 $avgFromScores = $agg ? (int)$agg->avg_score : null;
 
-                // Tentukan status:
-                // - Jika tidak ada admission sama sekali → "-"
-                // - Jika ada admission tetapi skor belum lengkap (cnt < total subjects) → "-"
-                // - Jika lengkap: bandingkan avg vs KKM
                 $status = '-';
                 if ($admissionId) {
                     if ($agg && $subjectsCount > 0 && (int)$agg->cnt >= $subjectsCount) {
                         $status = $avgFromScores >= $passMark ? 'Lulus Tes' : 'Tidak Lulus Tes';
-                    } else {
-                        $status = '-';
                     }
                 }
 
-                // Helper URL publik /storage/...
-                $url = function (?string $path) {
-                    return $path ? Storage::url($path) : null;
-                };
+                $url = fn(?string $path) => $path ? Storage::url($path) : null;
 
                 return [
                     'id' => (int)$s->id,
                     'student_name' => $s->full_name,
                     'guardian_name' => $s->guardian?->name ?? '-',
                     'guardian_phone' => $s->guardian?->phone ?? '-',
-                    'average_score' => $avgFromScores, // tampilkan avg dari exam_scores (bisa null kalau belum ada skor)
+                    'average_score' => $avgFromScores,
                     'status' => $status,
                     'created_at' => optional($s->admission?->created_at)->format('Y-m-d H:i'),
                     'files' => $s->admission ? [
@@ -120,5 +104,13 @@ class AdminApplicantController extends Controller
                 'subjects' => $subjects,
             ],
         ]);
+    }
+
+    public function destroy(int $id)
+    {
+        $student = Student::findOrFail($id);
+        $student->delete();
+
+        return back()->with('success', 'Applicant berhasil dihapus.');
     }
 }
