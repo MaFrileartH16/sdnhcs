@@ -215,6 +215,14 @@ const requirements = ref(['Formulir Pendaftaran', 'Kartu Keluarga', 'Akta Lahir'
                     </p>
                 </div>
                 <div class="space-y-2">
+                    <p class="font-semibold text-[#1b1b18] dark:text-white">Kontak</p>
+                    <div class="flex flex-col gap-1 text-xs">
+                        <p class="text-[#706f6c] dark:text-[#A1A09A]">
+                            <a class="hover:text-emerald-600 dark:hover:text-emerald-400" href="tel:+6283180073287"> +62 831-8007-3287 (Pak Budi) </a>
+                        </p>
+                    </div>
+                </div>
+                <div class="space-y-2">
                     <p class="font-semibold text-[#1b1b18] dark:text-white">Tautan</p>
                     <div class="flex flex-col gap-1 text-xs">
                         <a href="#hero">Beranda</a>
